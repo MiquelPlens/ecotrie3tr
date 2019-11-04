@@ -594,4 +594,6 @@ allgreM[121] <- allgreM$VP_DISPO
 allgreM$V121[allgreM$V121 >0] <- 1
 table(allgreM$V121)
 names(allgreM)[names(allgreM) == "V121"] <- "motorisation"
+ggplot(data = allgreM, aes(x = motorisation)) + geom_bar()
+
 ```
