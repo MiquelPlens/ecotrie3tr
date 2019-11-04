@@ -1,0 +1,583 @@
+---
+title: "Projet Econométrie 3"
+subtitle: "Variables qualitatives et modèles de choix discret"
+author: "I. Joly"
+date: "2 octobre 2019"
+output: pdf_document
+---
+```{r, include=FALSE}
+library(tidyverse)
+```
+
+# Descriptif du TP Econométrie 3
+## Enoncé
+
+- Ce projet est à faire en **binôme**. 
+- Tous les binômes travaillent sur le **même jeu de données**, avec des attentes identiques, mais avec un angle différent. 
+- Plus précisément, chaque binôme a une **question à traiter** (dans la liste des questions proposée en fin de sujet - l'affectation des questions aux groupes sera déterminée aléatoirement)
+- Chaque énoncé précise trois variables (X, Y, Z) d'intérêt particulier pour cette question. Vous **inclurez systématiquement ces trois variables** à vos analyses.
+
+Vous devez rendre un **rapport de 10 pages maximum** (plus annexes) abordant les points suivants, que vous mettrez en perspective avec la question à traiter :
+
+1. Présenter et décrire le jeu de données que vous utilisez (sans privilégier a priori une variable plutôt qu'une autre) : caractéristiques remarquables, propriétés des différentes variables, structures sous-jacentes, création de variables, factorisation, etc.
+
+2. Étude **univariée** des trois variables 
+
+3. Etudier la variable X, **variable à expliquer** (facteurs permettant de connaître X ? modèles de prédiction ?)
+
+3. Étudier la variable Z et sa contribution à l'explication de X
+
+4. Étudier la variable Y et sa contribution à l'explication de X
+
+Pour chacun des points, précisez le cas échéant si vous avez travaillé sur un sous-ensemble d'observations et/ou si vous avez supprimé ou créé des variables.
+
+De plus, n'hésitez pas à collaborer avec vos camarades travaillant sur d'autres variables, les problématiques étant liées et les résultats des uns pouvant être exploités aussi par d'autres.
+
+Le corps du rapport doit être une synthèse de vos analyses, où vous présentez les éléments que vous estimez les plus importants. Des éléments concrets (valeurs, tableaux, figures) doivent étayer vos affirmations, mais ne donnez pas tous les détails de vos analyses dans le corps du rapport (les annexes sont faites pour cela). Par exemple, si vous voulez étudier les corrélations de variables, n'indiquez que les plus significatives dans le rapport, et renvoyez aux annexes pour la matrice complète des corrélations.
+
+Le rapport devra être réalisé au format Rmarkdown (ou KnitR) avec tous les éléments permettant de **reproduire** votre analyse, et rendu par email (iragael.joly@grenoble-inp.fr ou ijoly.research@gmail.com) le  **XXX** à 23h59 dernier délai.
+
+Il est **impératif d'assurer la reproductibilité** de votre travail, tant sur la manipulation des données que sur la production du rapport. Veillez donc à indiquer à l'utilisateur les packages à installer les fichiers intermédiaires à executer, etc.
+
+---
+
+\tableofcontents
+
+---
+
+# Descriptif du fichier de données *allgre.PB_V2.Rdata*
+## Liste des fichiers joints:
+
+- Base de données **allgre.PB_V2.RData**
+
+- Dictionnaire de variables **DICO_VAR_EMD_GRE2010.xls**
+
+- Fichier **EnonceTP_Eco3_2019.rmd** de cet énoncé.  Ce fichier Rmd crée les fichiers utilisables pour le TP. Il est vivement conseillé de l'utiliser pour initier les manipulations des données.
+
+
+## Le thème et les données
+
+Les données utilisées sont issues d'une extraction d'une enquête sur les déplacements des grenoblois en 2010. Ces données sont disponibles  au format **environnement R** : *allgre.PB_V2.Rdata*
+
+Les données décrivent les déplacements réalisés par les membres de ménages grenoblois en 2010. Elles renseignent des données relatives aux caractéristiques individuelles et du ménage (structure du ménage, motorisation, sexe, âge, statut professionnel, etc.) et aux pratiques de mobilité (nombres de déplacements, horaires des déplacements, localisations des
+déplacements, modes utilisés, motifs des déplacements, etc.).
+
+La structure de la base de données est décrite dans les sections suivantes.
+
+## Liste des sujets proposés
+
+1.	Décrire les durées de déplacements quotidiennes (variable BTT) et comparer les deux groupes suivants : 1) les personnes se déplaçant moins de 2h par jour 2) les personnes se déplaçant plus de 2h par jour.
+
+Variable X : **btt**  
+Variable Y : **jourdepl**  
+Variable Z : **permis**  
+
+2.	Décrire le choix 'voiture' du mode de déplacement des individus et identifier les déterminants de ce choix parmi les caractéristiques individuelles ou du ménage et des modes de transport.
+
+Variable X :**Voiture**  (variable à créer selon le mode_depl_ag='VP' ou non)  
+Variable Y : **permis**  
+Variable Z :**age**
+
+3.	Proposer une caractérisation de la population de personnes immobiles et identifier les déterminants de la mobilité
+
+Variable X : **immobil**  (variable à créer selon le nbd= 0 ou nbd>0)  
+Variable Y : **age**  
+Variable Z : **VP_DISPO**  
+
+4.	Quels sont les déterminants de la motorisation des ménages ?
+
+Variable X : **motorisation** (variable à créer selon VP_DISPO  = 0 ou VP_DISPO >0)  
+Variable Y : **taillemng**   
+Variable Z : **Permis_mng**  : au moins 1 permis dans le ménage  
+
+5.	Etudier le parc automobile de Grenoble. Quels sont les déterminants du choix d'une motorisation diesel ?
+La question pourra se concentrer sur le 1er véhicule du ménage.
+
+Variable X : **diesel** (variable à créer selon ENERGIE1  = 3 ou ENERGIE1 <> 3)    
+Variable Y : **TYPE_HAB**  
+Variable Z : **taillemng**  
+
+6. Etudier les facteurs associés à l'usage fréquent (tous les jours) des transports en commun urbain (**freqtcu**)  
+
+Variable X : **freqtcu** (variable à créer selon freqtcu = 1 ou non)  
+Variable Y : **permis**  
+Variable Z : **taillemng**  
+
+\newpage
+
+# Chargement de la base de données et exploration
+```{r, eval=FALSE}
+library(tidyverse)
+```
+## Chargement de la base
+La base est une extraction de la moitié des ménages...
+```{r echo=TRUE}
+# Chargement de la base d'origine
+# load("allgre_TR.RData")
+# # Extraction de la moitié des ménages pour travail étudiants
+# set.seed(123)
+# allgre$PB <- round( ave(  sample( x= c(0,1), prob= c(0.5, 0.5), size = 
+#          length(allgre$id_men),replace=T) , allgre$id_men, FUN= mean) )
+# table(allgre$PB)
+# allgre.PB <- allgre[allgre$PB ==1,]
+# # Sauvegarde de la nouvelle base
+# # Exclusion des variables sans intérêt
+# allgre.PB_V2 <- allgre.PB[, -c( 5 ,10 ,47 ,49 ,51 ,64 ,81 ,97 ,98 ,101 ,124:136, 139:148, 150, 151)]
+# save(allgre.PB_V2, file = "allgre.PB_V2.RData")
+# Chargement de la nouvelle base PB
+load("allgre.PB_V2.RData")
+table(allgre.PB_V2$nbd)
+# Verif des NO_DEPL
+table(allgre.PB_V2$NO_DEPL)
+# Vérif_id_depl
+table(is.na(allgre.PB_V2$id_depl))
+# Nouveau id_depl
+allgre.PB_V2$id_depl <- allgre.PB_V2$id_pers * 10  + allgre.PB_V2$NO_DEPL 
+table(is.na(allgre.PB_V2$id_depl))
+table(allgre.PB_V2$nbd)
+```
+
+
+
+## Description du contenu de la base de données
+
+
+```{r}
+Ncol <- 7; 
+v <- Ncol* (Nlin <-  ceiling(length(names(allgre.PB_V2))/Ncol )) - length(names(allgre.PB_V2))
+mat <- matrix(c(names(allgre.PB_V2), rep("",v)), ncol = Ncol, 
+              dimnames = list(1:Nlin,c("col1", "col2", "col3", "col4", "col5", "col6", "col7"))
+              )
+# contenu base merge_4
+knitr::kable( mat, digits = 2, caption = "Table: Nom des variables de la base *allgre.PB*")
+
+```
+
+
+
+## Description des variables et labels
+
+Voir le dictionnaire des variables (fichier: **DICO_VAR_EMD_GRE2010.xls**)
+
+`r kt =  1; names(allgre.PB_V2)[kt]`: Numéro de tirage de l'observation (souvent proche du n° de zone de résidence)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro de la personne dans le ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro du déplacement de la personne  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro de la zone de résidence (voir fichier de correspondance)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Jour du déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type de logement du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type d'occupation de la personne  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° de département de la gare sncf de référence  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Code postal de la gare sncf de référence  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Disposition d'un téléphone  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Présent dans l'annuaire  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Disposition d'une connexion internet  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre de voiture particulière disponible dans le ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type de voiture pour la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type de carburant de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Année de mise en circulation de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Puissance de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type de propriété de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Lieu de stationnement  de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Type de stationnement  de la 1ère voiture du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[seq(kt,kt+20,1)]`: idem pour les voitures n°2, 3 et 4 du ménage  
+`r kt =  kt+21; names(allgre.PB_V2)[kt]`: Nombre de vélos du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre de 2 roues motorisées du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: coefficient de redressement associé au ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° de zone de résidence  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Sexe  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Lien avec la personne de référence du ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Age  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Possession d'un téléphone portable  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Possession d'une adresse mail  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Possession du permis de conduire  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Dernier établissement scolaire fréquenté  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Occupation principale  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Autre occupation  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Catégorie Socio-professionnelle (PCS)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Possession d'un abonnement de Transport en commun en général  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Validité de l'abonnement TC hier  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Travail ou étude à domicile  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Zone du lieu de travail ou d'étude (Occupation principale)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Disposition d'une voiture en générale (Déplacement domicile-travail ou études)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Problèmes de stationnement en général (sur lieu de travail ou d'études)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Difficultés de stationnement sur lieu de travail ou d'études  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation bicyclette  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation 2 roues à moteurs (type 1 ?)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation 2 roues à moteurs (type 2 ?)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Voiture en conducteur  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Voiture en passager  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Réseau urbain tag  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Tramway uniquement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Autre réseau urbain  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation Réseau Cars Transisère  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Fréquence d'utilisation TER  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Situation de la personne la veille  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° Zone de résidence  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Motif à l'origine  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Motif à l'origine de la personne accompagnée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° Zone origine du déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Heure de départ  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Minute de départ  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Motif à la destination  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Motif à la destionation de la personne accompagnée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre d'arrêts dans la tournée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° Zone de destination  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Heure d'arrivée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Minute d'arrivée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Durée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`:: Nombre de modes mécanisés utilisés pour faire le déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Prise en charge du coût du déplacement   
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Distance à vol d'oiseau (en mètres)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Distance recalculée (en mètres)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: N° zone de résidence  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro du trajet dans le déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Temps de marche à pied au départ  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Mode de transport 'fin' du trajet
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Zone fine de départ du mode mécanisé  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Zone fine d'arrivée du mode mécanisé  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Temps de marche à pied à l'arrivée  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Numéro du véhicule utilisé  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre d'occupant du véhicule  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Lieu de stationnement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nature du stationnement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Durée de recherche du stationnement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Utilisation autoroute à péage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Abonnement d'autoroute  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Identifiant unique Ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Identifiant unique Personne  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Identifiant unique Déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Identifiant unique Trajet  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`:  Nombre de personnes dans le ménage  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre de déplacements dans la journée de la personne  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Nombre de trajets dans le déplacement  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Budget temps de transport (somme des durées de tous les déplacements de la personne dans sa journée)  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Mode de déplacement agrégé du trajet  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Coût de déplacement estimé du trajet  
+`r kt =  kt+1; names(allgre.PB_V2)[kt]`: Mode de déplacement agrégé au niveau déplacement  
+
+\newpage
+
+## Structure de la base de données
+Il s'agit d'une base de données dite 'hiérarchique'. Elle est initialement constituée de 4 fichiers :
+
+1. Fichier *Ménage*
+
+2. Fichier *Personne*
+
+3. Fichier *Déplacement*
+
+4. Fichier *Trajet*
+
+Dans les enquêtes, les déplacements sont constitués comme une suite de trajets ou d'étapes effectués pour un certain motif. Pour un déplacement, il peut y avoir plusieurs trajets décrits, lorsque le déplacement est réalisé en plusieurs étapes (par ex: un trajet en vélo du domicile à la gare, un trajet en train, puis un trajet en vélo de la gare au lieu de travail). Cela est représenté dans la base de données fournies par plusieurs lignes pour un même déplacement.
+
+Sur le même principe hiérarchique: un individu peut réalisé plusieurs déplacements dans sa journée, et un ménage peut être composé de plusieurs individus.
+
+La base de données fournies est la plus 'fine', puisqu'elle décrit toutes les informations ménages, individus et déplacements pour chaque trajet. Il y a donc autant de lignes que de trajet.
+
+La structure est gérée par par les numéros identifiants des ménages, individus, déplacements et trajets : 
+
+- id_men: Identifiant unique Ménage
+
+- id_pers: Identifiant unique Personne
+
+- id_depl: Identifiant unique Déplacement
+
+- id_traj: Identifiant unique Trajet
+
+Le travail demandé dans ce tp peut nécessiter de travailler, par exemple sur une base d'individus au lieu des trajets. Pour cela il conviendra de réduire la base de données (réduire le nombre de lignes) pour ne conserver que des informations au niveau individuel (une ligne par individu).
+
+Les éléments de scripts suivants permettent de réduire la base de données au niveau déplacement, personne et ménage.
+
+Ils donnent aussi quelques indications sur la façon d'agréger l'information disponible à un niveau inférieur. 
+
+\newpage
+
+### Constitution de la base *Déplacements*
+```{r}
+#    BASE DEPLACEMENTS
+## exemple de calcul : nombre de trajets par déplacement
+allgre.PB_V2$nbt2 <- ave( allgre.PB_V2$NO_TRAJ, allgre.PB_V2$id_depl, FUN = max)
+addmargins( table(allgre.PB_V2$nbt2) )
+## Réduction au déplacement : ATTENTION On ejecte les immobiles
+allgreD <- distinct(allgre.PB_V2, id_depl, .keep_all = T)
+  # ou avec subset(allgre.PB_V2, allgre.PB_V2$NO_TRAJ == allgre.PB_V2$ntraj )
+# nb trajet
+addmargins( table(allgreD$nbt2) )
+# Par mode
+table(allgreD$mode_depl_ag)
+# durée
+addmargins( table(allgre.PB_V2$duree))
+table(is.na(allgreD$duree))
+table(cut(allgreD$duree, breaks=seq(0, max(allgreD$duree, na.rm = T), 30)), useNA = "always")
+# nb déplacements
+table(allgre.PB_V2$nbd)
+
+```
+
+### Constitution de la base *Individus*
+
+```{r}
+############
+#    BASE INDIVIDUS
+## exemple de calcul : durée quotidienne des déplacements d'un individu
+allgreD$btt2 <- ave( allgreD$duree, allgreD$id_pers, FUN = sum)
+#addmargins( table(allgreD$btt2) )
+## Reduction
+allgreI <- distinct(allgreD, id_pers, .keep_all = T)
+# subset(allgreD, allgreD$NO_DEPL == allgreD$nbd )
+#addmargins( table(allgreI$btt2) )
+
+summary(allgreI$btt); summary(allgreI$btt2)
+addmargins( table(allgreI$nbd) )
+table(is.na(allgreI$nbd))
+
+```
+Remarque: pour le calcul du temps quotidien de déplacement (BTT) les éléments *btt* et *btt2* diffèrent en raison de pré-traitement réalisés lors du calcul de *btt* (correction d'erreurs sur les horaires déclarés essentiellement)
+
+
+### Constitution de la base *Ménages*
+
+```{r}
+############
+#    BASE MENAGE
+## exemple de calcul : taille du ménage et permis-ménage
+allgreI$taillemng <- ave(allgreI$NO_PERS, allgreI$id_men, FUN = max)
+allgreI$Permis_mng <- ave(allgreI$permis, allgreI$id_men, FUN = max)
+addmargins( table(allgreI$taillemng) )
+## Reduction
+allgreM <- distinct(allgreI, id_men, .keep_all = T)
+    #subset(allgreI, allgreI$NO_PERS == allgreI$taillemng )
+addmargins( table(allgreM$taillemng) )
+addmargins( table(allgreM$Permis_mng) )
+
+table(allgreI$freqtcu)
+table(allgreI$nbd)
+table(allgreI$freqter)
+```
+
+
+
+
+# Re-définition des numéros zones :
+```{r, message=FALSE}
+allgre.PB_V2$"UN" <- as.numeric(allgre.PB_V2$nbd !=0)
+table(as.numeric(allgre.PB_V2$UN))
+allgre.PB_V2$DEST <- round(allgre.PB_V2$zonedest/1000)
+head(allgre.PB_V2$DEST)
+allgre.PB_V2$ORIG <- round(allgre.PB_V2$zoneorig/1000)
+head(allgre.PB_V2$ORIG)
+table(allgre.PB_V2$ORIG)
+``` 
+
+
+
+
+## Calcul des moyennes des distances parcourues
+```{r}
+mean(allgre.PB_V2$D12, na.rm = T); mean(allgre.PB_V2$D13, na.rm = T)
+summary(allgre.PB_V2$D12)
+# nombre de distance 'NA' par zone
+table(allgre.PB_V2$zoneres.y[is.na(allgre.PB_V2$D12)==1])
+tapply(allgre.PB_V2$D12, as.factor(allgre.PB_V2$zoneres.y),mean, na.rm = TRUE)
+
+```
+## Quelques définitions de variables
+
+```{r}
+## GRENOBLE 2010		 :
+#######
+table(allgre.PB_V2$OCCU1 )
+allgre.PB_V2$statut2 <- factor(allgre.PB_V2$OCCU1 , 
+                        labels=c("TRAVAIL A TEMPS PLEIN","TRAVAIL A TEMPS PARTIEL","FORMATION STAGE","ETUDIANT", "SCOLAIRE", "CHOMEUR","RETRAITE", "RESTE AU FOYER", "AUTRE"))
+table(allgre.PB_V2$statut2)
+#####
+levels(allgre.PB_V2$statut2) <-  c("ACTIF","ACTIF", "ACTIF", "ETUDIANT", "SCOLAIRE", "CHOMEUR","RETRAITE", "RESTE AU FOYER", "AUTRE")
+table(allgre.PB_V2$statut2)
+#####
+allgre.PB_V2$cspgroup <- trunc(allgre.PB_V2$csp / 10)
+allgre.PB_V2$cspgroup[allgre.PB_V2$pcs %in% c(81,82)] <- 7
+allgre.PB_V2$cspgroup[is.na(allgre.PB_V2$cspgroup)==T] <- 9
+table(allgre.PB_V2$cspgroup)
+```
+
+***
+
+
+# TEST SIG
+```{r, eval=T}
+# chargement des packages nécessaires
+library(igraph)
+library(dismo)
+library(maptools)
+library(reshape2)         # transformation format long, format large
+library(sp)               # objets spatiaux
+library(rgdal)            # fonctions de la bibliothèque GDAL
+library(ggplot2)          # fonctions graphiques
+#library(ggthemes)         # thèmes pour ggplot
+library(grid)             # fonction arrow
+library(cartography)      # cartographie thématique
+library(RColorBrewer)     # palettes de couleurs de C. Brewer
+library(dplyr) 
+library(RgoogleMaps)
+library(PBSmapping)
+library(rgeos)
+library(cleangeo)
+library(devtools)
+library(lwgeom)
+```
+
+
+
+```{r,  results='hide', message=FALSE, eval=F}
+Sectir2010<-readOGR("FOND_MAP",layer="Sectir2010")
+plot(Sectir2010)
+# Affichage system de coordonnees
+pathToShp <- "FOND_MAP"
+Sectir2010@proj4string
+ogrInfo(dsn = pathToShp,layer="Sectir2010")
+```
+
+### Import  du shp avec coordonnées compatibles
+```{r, eval=T}
+newESRI <- readOGR(dsn = "G:\\MyDATA\\TEst_Reunion_Distance\\FOND_MAP", layer = "NewESRI")
+
+
+#ACADIA$data <- DF_Zone
+plot(newESRI)
+#plot(ACADIA)
+```
+
+
+## Le shapefile rencontre des erreurs (hole) qui sont corrigées par les outils `cleangeo()`
+Il faut faire ce nettoyage *AVANT* le merge qui créée beaucoup de polygons
+
+```{r, results='hide', message=FALSE, eval=TRUE}
+################################## 
+# https://gis.stackexchange.com/questions/113964/fixing-orphaned-holes-in-r
+require(maptools)
+# mysp <- readShapePoly("C:\\Users\\ijoly.INRA\\Desktop\\TEst_Reunion_Distance\\FOND_MAP\\Sectir2010.shp")
+plot(newESRI, border= "lightgray")
+require(devtools)
+## to detect potential geometry issues
+# devtools::install_github("eblondel/cleangeo")
+require(cleangeo)
+# exploration of sh
+report <- clgeo_CollectionReport(newESRI)
+clgeo_SummaryReport(report)
+# cleaning
+mysp.clean <- clgeo_Clean(newESRI)
+# check
+report.clean <- clgeo_CollectionReport(mysp.clean)
+clgeo_SummaryReport(report.clean)
+# geometry validity
+require(rgeos)
+sapply(slot(mysp.clean, "polygons"), function(x){
+  gIsValid(SpatialPolygons(Srl = list(x)))
+})
+
+
+# ###################""
+# # exploration of sh
+# report <- clgeo_CollectionReport(mysp)
+# clgeo_SummaryReport(report)
+# # cleaning
+# mysp.clean <- clgeo_Clean(mysp)
+# # check
+# report.clean <- clgeo_CollectionReport(mysp.clean)
+# clgeo_SummaryReport(report.clean)
+# # geometry validity
+# require(rgeos)
+# sapply(slot(mysp.clean, "polygons"), function(x){
+#   gIsValid(SpatialPolygons(Srl = list(x)))
+# })
+
+```
+
+
+
+# Calculs des indicateurs par zone : CARTE NBD BTT
+```{r,  results='hide', message=FALSE, eval=T}
+# Constitution de la base par zone
+# allgre.PB$Maxnbd <- ave(allgre.PB$NO_DEPL,allgre.PB$ind, FUN = max)
+# allgre.PB$BTT <- ave(allgre.PB$tps_trp,allgre.PB$ind, FUN = sum)
+#table(allgre.PB$Maxnbd); summary(DF_Indiv$BTT)
+#names(allgre.PB)
+DF <- allgre.PB_V2[, c("nbd", "btt", "tir", "zoneres.x", "id_pers")]
+# Calcul base individus des indicateurs individuels
+DF_Indiv <- na.omit(subset(DF, allgre.PB_V2$NO_DEPL == allgre.PB_V2$nbd ))
+addmargins(table(allgre.PB_V2$zoneres.x));addmargins(table(allgre.PB_V2$zoneres.y))
+DF_Indiv$BTT_moy <- ave(DF_Indiv$btt,DF_Indiv$tir, FUN = mean)
+DF_Indiv$BTT_med <- ave(na.omit(DF_Indiv$btt),DF_Indiv$tir, FUN = median)
+DF_Indiv$nbd_med <- ave(DF_Indiv$nbd,DF_Indiv$tir, FUN = median)
+DF_Indiv$nbd_moy <- ave(DF_Indiv$nbd,DF_Indiv$tir, FUN = mean)
+DF_Indiv$Maxind <- ave(DF_Indiv$id_pers,DF_Indiv$tir, FUN = max)
+# Réduction à la base Zone (avec le max(ind) par TIR)
+DF_Zone <- subset(DF_Indiv, DF_Indiv$id_pers == DF_Indiv$Maxind, select =c(zoneres.x,BTT_med, BTT_moy, nbd_moy, nbd_med,tir))
+``` 
+### Jointure avec newESRI et data
+
+```{r}
+library(sp) # the trick is that this package must be loaded!
+# JOINTURE avec option duplicateGEOM=T pour avoir autant de polygons que d'observations dans data
+DF_Indiv$cod_sectir <- DF_Indiv$tir
+newESRI_DF <- merge(mysp.clean, DF_Indiv, by = "cod_sectir", duplicateGeoms = TRUE)
+PolyG <- SpatialPolygons(mysp.clean@polygons,proj4string=mysp.clean@proj4string)
+```
+
+
+
+# Cartographie Colorée 
+```{r,  message=FALSE, eval=T}
+choroLayer(spdf = newESRI_DF, df = newESRI_DF@data, var = "tir")
+title("Cartographie de N° de Zone - pas très utile...")
+```
+
+# Import EMD :
+```{r, message=FALSE, eval=T}
+allgre.PB_V2$"UN" <- as.numeric(allgre.PB_V2$nbd !=0)
+table(as.numeric(allgre.PB_V2$UN))
+allgre.PB_V2$DEST <- round(allgre.PB_V2$zonedest/1000)
+head(allgre.PB_V2$DEST)
+allgre.PB_V2$ORIG <- round(allgre.PB_V2$zoneorig/1000)
+head(allgre.PB_V2$ORIG)
+``` 
+
+Carte avec label: installer lwgeom
+```{r}
+choroLayer(spdf = newESRI_DF, df = newESRI_DF@data, var = "tir")
+# Label plot of the Mean
+labelLayer(spdf = newESRI_DF, df = newESRI_DF@data, txt = "tir", col = "#690409", cex = 0.9, font = 2, add=T)
+```
+
+
+
+# Le script suivant peut nécéssiter d'être  executer HORS MARKDOWN
+```{r, echo=TRUE, eval=T}
+Nclasse <- 5
+########## Carte colorée
+choroLayer(spdf = newESRI_DF, 
+           df = DF_Zone,
+           spdfid = "cod_sectir",
+           dfid = "tir",
+           var = "BTT_moy", 
+           nclass = Nclasse,
+           col = rev(brewer.pal(n = Nclasse, "RdYlBu")),
+           legend.pos = "right", legend.frame = TRUE,
+           legend.title.txt = "BTT moyens par zone")
+########### Ajout de label : nbd par zone
+# Label creation 
+DF_Zone$lab <- paste(round(DF_Zone$nbd_moy,1), sep ="")
+# Label plot of the Mean
+#labelLayer(spdf = newESRI_DF, df = DF_Zone, txt = "lab", col = "#690409", cex = 0.9, font = 2, add=T)
+####### Ajout d'éléments de présentations : Layout plot
+layoutLayer(title = "BTT moyens par zone",
+            sources = "EMD Grenoble 2010",
+            author = "I. Joly",
+            scale = 0,
+            north = T,
+            frame = TRUE,
+            col = "black",
+            coltitle = "white")
+```
+
