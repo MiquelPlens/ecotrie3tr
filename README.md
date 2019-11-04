@@ -1,3 +1,3 @@
-# ecotrie3tr
+# Projet économétrie
 
-Voyons ici le README
+On veut savoir quels sont les déterminants de la motorisation des ménages de l'agglomération grenobloise.
