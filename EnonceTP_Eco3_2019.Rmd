@@ -1,7 +1,7 @@
 ---
 title: "Projet Econométrie 3"
 subtitle: "Variables qualitatives et modèles de choix discret"
-author: "I. Joly"
+authors: "Les drôletaires"
 date: "2 octobre 2019"
 output: pdf_document
 ---
@@ -581,3 +581,17 @@ layoutLayer(title = "BTT moyens par zone",
             coltitle = "white")
 ```
 
+
+
+
+```{r}
+ggplot(data = allgreI, aes(x = NO_PERS)) + geom_bar()
+ggplot(data = allgreM, aes(x = VP_DISPO)) + geom_bar()
+ggplot(data = allgreM, aes(x = Permis_mng)) + geom_bar()
+
+allgreM$Permis_mng[allgreM$Permis_mng ==3] <- 1
+allgreM[121] <- allgreM$VP_DISPO
+allgreM$V121[allgreM$V121 >0] <- 1
+table(allgreM$V121)
+names(allgreM)[names(allgreM) == "V121"] <- "motorisation"
+```
